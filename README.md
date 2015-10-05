@@ -1,5 +1,7 @@
 # dojo-parser
 
+[![Build Status](https://travis-ci.org/dojo/parser.svg?branch=master)](https://travis-ci.org/dojo/parser)
+
 A package for declaratively instantiating widgets.
 
 ## Features
