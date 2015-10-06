@@ -3,6 +3,8 @@
 *.js
 *.js.map
 !/*.js
+!/_modules/**/*.js
+!/_modules/**/*.js.map
 dist
 _build
 node_modules
@@ -10,3 +12,5 @@ bower_components
 tests/typings/dist/
 .baseDir.ts
 html-report
+coverage*.json
+lcov.info

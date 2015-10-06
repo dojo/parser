@@ -10,25 +10,21 @@ export var proxyUrl = 'http://localhost:9000/';
 // Note that the `build` capability will be filled in with the current commit ID from the Travis CI environment
 // automatically
 export var capabilities = {
-	'browserstack.selenium_version': '2.45.0',
 	project: 'Dojo 2',
-	name: 'dojo-<< package-name >>'
+	name: 'dojo-parser',
+	fixSessionCapabilities: false
 };
 
 // Browsers to run integration testing against. Note that version numbers must be strings if used with Sauce
 // OnDemand. Options that will be permutated are browserName, version, platform, and platformVersion; any other
 // capabilities options specified for an environment will be copied as-is
 export var environments = [
-	{ browser: 'IE', browser_version: '11', os: 'WINDOWS', os_version: '8.1' },
-	{ browser: 'IE', browser_version: '10', os: 'WINDOWS', os_version: '8' },
-	{ browser: 'IE', browser_version: '9', os: 'WINDOWS', os_version: '7' },
-	{ browser: 'Firefox', os: 'WINDOWS', os_version: '8.1' },
-	{ browser: 'Firefox', os: 'WINDOWS', os_version: 'XP' },
-	{ browser: 'Firefox', os: 'OS X' },
-	{ browser: 'Chrome', os: 'WINDOWS', os_version: '8.1' },
-	{ browser: 'Chrome', os: 'WINDOWS', os_version: 'XP' },
-	{ browser: 'Chrome', os: 'OS X' },
-	{ browser: 'Safari', browser_version: '8', os: 'OS X' }
+	{ browserName: 'internet explorer', version: [ '9', '10', '11' ], platform: 'WINDOWS' },
+	{ browserName: 'edge', version: '12', platform: 'WINDOWS' },
+	{ browserName: 'firefox', platform: [ 'WINDOWS', 'MAC' ] },
+	{ browserName: 'chrome', platform: [ 'WINDOWS', 'MAC' ] },
+	{ browserName: 'safari', version: '8', platform: 'MAC' },
+	{ browserName: [ 'iPad', 'iPhone' ], platform: 'MAC' }
 ];
 
 // Maximum number of simultaneous integration tests that should be executed on the remote WebDriver service
@@ -55,4 +51,4 @@ export var suites = [ 'tests/unit/all' ];
 export var functionalSuites = [ 'tests/functional/all' ];
 
 // A regular expression matching URLs to files that should not be included in code coverage analysis
-export var excludeInstrumentation = /(?:node_modules|bower_components|tests)[\/\\]/;
+export var excludeInstrumentation = /(?:node_modules|bower_components|tests|_modules)[\/\\]/;
