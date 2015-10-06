@@ -100,7 +100,7 @@ registerSuite({
 
 		const callback = function(changes: WatcherRecord[]) {
 			called++;
-		}
+		};
 
 		handle = watch(doc.body, callback);
 		doc.body.innerHTML = '<div></div>';
