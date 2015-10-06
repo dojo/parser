@@ -13,3 +13,4 @@ tests/typings/dist/
 .baseDir.ts
 html-report
 coverage*.json
+lcov.info
