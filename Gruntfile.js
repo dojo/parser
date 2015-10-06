@@ -63,7 +63,7 @@ module.exports = function (grunt) {
 				}
 			},
 			coverage: {
-				src: [ 'html-report/' ]
+				src: [ 'html-report/', 'coverage*.json', 'lcov.info' ]
 			}
 		},
 
