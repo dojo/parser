@@ -13,6 +13,10 @@ interface ElementStructure {
  */
 export let checkInterval: number = 30;
 
+/**
+ * The two types of changes emitted by watch
+ * @type {ChangeType}
+ */
 export enum ChangeType { Added, Removed }
 
 export interface WatcherRecord {
@@ -24,9 +28,23 @@ export interface WatcherCallback {
 	(changes: WatcherRecord[]): void;
 }
 
+/**
+ * Used for shadowing nodes that don't have an id
+ * @type {Number}
+ */
 let nodeIDCounter = 0;
+
+/**
+ * Used for shadowing IDs for nodes that don't have one
+ * @type {WeakMap}
+ */
 const nodeIDWeakMap = new WeakMap<HTMLElement, string>();
 
+/**
+ * Helper function to retreive a node's ID
+ * @param  {HTMLElement} node The node to retrieve the ID of
+ * @return {string}           The ID of the node
+ */
 function getNodeID(node: HTMLElement): string {
 	let id = node.id || nodeIDWeakMap.get(node);
 	if (!id) {
@@ -35,6 +53,14 @@ function getNodeID(node: HTMLElement): string {
 	return id;
 }
 
+/**
+ * Helper function that provides indexOf functionality to NodeLists
+ * @param  {any[]|NodeList} collection The haystack
+ * @param  {any}                         searchFor  The needle
+ * @param  {number}                      fromIndex  Starting index to search from
+ * @param  {string}                      property   The property of the object to search
+ * @return {number}                                 The index (-1 if not found)
+ */
 function indexOf(collection: any[]|NodeList, searchFor: any, fromIndex: number, property?: string): number {
 	for (; fromIndex < collection.length; fromIndex++) {
 		if ((property ? collection[fromIndex][property] : collection[fromIndex]) === searchFor) {
@@ -49,6 +75,13 @@ interface Conflict {
 	j: number;
 }
 
+/**
+ * Looking in a subtree for changes
+ * @param  {WatcherRecord[]}  changes  Existing changes to look for additional child changes
+ * @param  {HTMLElement}      target   The watched element
+ * @param  {ElementStructure} oldState The old state to compare
+ * @return {boolean}                   Returns true if additional changes were found, otherwise false
+ */
 function searchSubTree(changes: WatcherRecord[], target: HTMLElement, oldState: ElementStructure): boolean {
 	let dirty = false;
 
@@ -156,6 +189,11 @@ interface IteratorCallback {
 	(value: HTMLElement, index?: number, array?: NodeList): ElementStructure;
 }
 
+/**
+ * Map an HTMLElement into an ElementStructure
+ * @param  {HTMLElement}      target The target element
+ * @return {ElementStructure}        The element structure that can be used to track changes
+ */
 function clone(target: HTMLElement): ElementStructure {
 	function map(list: NodeList, iterator: IteratorCallback): ElementStructure[] {
 		const results: ElementStructure[] = [];
@@ -177,8 +215,11 @@ function clone(target: HTMLElement): ElementStructure {
 	return copy(target);
 }
 
-let nodeMap: NodeMapElement[] = [];
-
+/**
+ * Return a function that can check an element for changes
+ * @param  {HTMLElement}    target The target element
+ * @return {ChangeDetector}        A function that can be called to detect changes
+ */
 function getChangeDetector(target: HTMLElement): ChangeDetector {
 	let oldState: ElementStructure = clone(target);
 
@@ -191,12 +232,28 @@ function getChangeDetector(target: HTMLElement): ChangeDetector {
 	};
 }
 
+/**
+ * The timer handle
+ * @type {number|NodeJS.Timer}
+ */
 let timer: number|NodeJS.Timer;
 
+/**
+ * Starts the dirty polling timer
+ */
 function startTimer(): void {
 	timer = setTimeout(checkChanges, checkInterval);
 }
 
+/**
+ * The map of nodes to check for changes
+ * @type {NodeMapElement[]}
+ */
+let nodeMap: NodeMapElement[] = [];
+
+/**
+ * Perform the checking of changes
+ */
 function checkChanges(): void {
 	timer = undefined;
 	nodeMap.forEach((item: NodeMapElement) => {
@@ -213,6 +270,13 @@ function checkChanges(): void {
 	}
 }
 
+/**
+ * The public API of watch, which watches for insertions or removals of nodes and calls back
+ * the callback whenever the changes occur
+ * @param  {HTMLElement}     node     The element to watch for changes
+ * @param  {WatcherCallback} callback A function that is called back with an array of changes
+ * @return {Handle}                   A handle that allows removal of the watching functionality
+ */
 export default function watch(node: HTMLElement, callback: WatcherCallback): Handle {
 	const item: NodeMapElement = {
 		target: node,
