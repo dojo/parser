@@ -24,7 +24,7 @@
 		"grunt-tslint": "2.5.0",
 		"tslint": "2.5.0",
 		"intern": "kitsonk/intern#issue-435",
-		"jsdom": "~5.4.0",
+		"jsdom": "~6.5.1",
 		"remap-istanbul": "~0.3.0",
 		"typescript": "~1.6.0"
 	}
