@@ -1,10 +1,30 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { jsdom } from 'src/has!host-node?../support/jsdom';
-import parse, { register, ParserObject } from '../../src/parser';
+import parse, { register, ParserObject, RegistrationHandle } from '../../src/parser';
 
 registerSuite(function () {
 	let doc: Document;
+	let handle: RegistrationHandle<any>;
+
+	class Foo implements ParserObject {
+		constructor(node: HTMLElement, options?: any) {
+			this.constructOptions = options;
+			this.constructNode = node;
+		}
+		id: string;
+		node: HTMLElement;
+		constructNode: HTMLElement;
+		foo: string = 'foo';
+		constructOptions: any;
+	}
+
+	class Bar implements ParserObject {
+		id: string;
+		node: HTMLElement;
+		bar: number = 1;
+	}
+
 	return {
 		name: 'src/parser',
 		setup: function () {
@@ -15,12 +35,6 @@ registerSuite(function () {
 			'implicit document': function () {
 				if (typeof document === 'undefined') {
 					this.skip('Environment does not have global document');
-				}
-
-				class Foo {
-					foo() { console.log('foo'); }
-					node: HTMLElement;
-					id: string;
 				}
 
 				const handle = register('my-foo', {
@@ -57,12 +71,6 @@ registerSuite(function () {
 				handle.destroy();
 			},
 			'ES6 class': function () {
-				class Foo implements ParserObject {
-					node: HTMLElement = undefined;
-					id: string = '';
-					foo: string = 'foo';
-				}
-
 				const handle = register('my-foo', {
 					Ctor: Foo,
 					doc: doc
@@ -100,18 +108,6 @@ registerSuite(function () {
 				handle.destroy();
 			},
 			'map': function () {
-				class Foo implements ParserObject {
-					id: string;
-					node: HTMLElement;
-					foo: string = 'foo';
-				}
-
-				class Bar implements ParserObject {
-					id: string;
-					node: HTMLElement;
-					bar: number = 1;
-				}
-
 				const proto = {
 					id: <string> undefined,
 					node: <HTMLElement> undefined,
@@ -134,6 +130,159 @@ registerSuite(function () {
 						doc: doc
 					});
 				}, SyntaxError, 'Missing either "Ctor" or "proto" in options.');
+			}
+		},
+		'parsing': {
+			'implicit document': function () {
+				if (typeof document === 'undefined') {
+					this.skip('Environment does not have global document');
+				}
+
+				doc.body.innerHTML = `<div>
+					<my-foo></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo
+				});
+
+				return parse().then(function (results) {
+					assert.strictEqual(results.length, 1, '1 object instantiated');
+					assert(results[0].node, 'instance node has a value');
+					assert.strictEqual(results[0].node.tagName.toLowerCase(), 'my-foo',
+						'The instance has the right tag name');
+					assert.instanceOf(results[0], Foo, 'result instance of Foo');
+					handle.destroy();
+				});
+			},
+			'no id, no options': function () {
+				doc.body.innerHTML = `<div>
+					<my-foo></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 1, '1 object instantiated');
+					const result = <Foo> results[0];
+					assert(result.node, 'instance node has a value');
+					assert.strictEqual(result.node.tagName.toLowerCase(), 'my-foo',
+						'The instance has the right tag name');
+					assert.instanceOf(result, Foo, 'result instance of Foo');
+					assert.isUndefined(result.id, 'id should not be defined');
+					assert.strictEqual(result.constructNode, result.node,
+						'constructor should have been passed node');
+					assert.isUndefined(result.constructOptions, 'No options should have been passed');
+					handle.destroy();
+				});
+			},
+			'no registration': function () {
+				doc.body.innerHTML = `<div>
+					<my-foo></my-foo>
+				</div>`;
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 0, 'no objects instantiated');
+				});
+			},
+			'id, no options': function () {
+				doc.body.innerHTML = `<div>
+					<my-foo id="myFoo1"></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 1, '1 object instantiated');
+					const result = <Foo> results[0];
+					assert.strictEqual(result.id, 'myFoo1');
+					assert.strictEqual(result.node.id, result.id, 'the ids match');
+					assert.isUndefined(result.constructOptions, 'no options passed');
+					handle.destroy();
+				});
+			},
+			'no id, options': function () {
+				doc.body.innerHTML = `<div>
+					<my-foo data-options='{ "foo": "bar" }'></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 1, '1 object instantiated');
+					const result = <Foo> results[0];
+					assert.isUndefined(result.id, 'no ID defined');
+					assert.deepEqual(result.constructOptions, { foo: 'bar' },
+						'construction options match');
+					handle.destroy();
+				});
+			},
+			'invalid options': function () {
+				const dfd = this.async(250);
+
+				doc.body.innerHTML = `<div>
+					<my-foo data-options='{ foo: "bar" }'></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				parse({ root: doc }).then(dfd.reject, dfd.callback(function (error: any) {
+					assert.instanceOf(error, SyntaxError);
+					handle.destroy();
+				}));
+			},
+			'is attribute': function () {
+				doc.body.innerHTML = `<div>
+					<div is="my-foo"></div>
+					<div is="my-bar"></div>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 1, '1 object instantiated');
+					const result = <Foo> results[0];
+					assert.isUndefined(result.id, 'no ID defined');
+					assert.strictEqual(result.node.tagName.toLowerCase(), 'div',
+						'node has proper tag');
+					handle.destroy();
+				});
+			},
+			'mutiple': function () {
+				doc.body.innerHTML = `
+					<my-foo id="myFoo2"></my-foo>
+					<div is="my-foo" id="myFoo3"></div>
+					<div>
+						<my-bar id="myBar1"></my-bar>
+						<div is="my-foo" id="myFoo4"></div>
+					</div>`;
+
+				const handle = register({
+					'my-foo': { Ctor: Foo, doc: doc },
+					'my-bar': { Ctor: Bar, doc: doc }
+				});
+
+				return parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 4, '4 objects instantiated');
+					assert.deepEqual(results.map(item => item.id), [ 'myFoo2', 'myFoo3', 'myBar1', 'myFoo4' ],
+						'all the right objects instantiated');
+					handle.destroy();
+				});
 			}
 		}
 	};
