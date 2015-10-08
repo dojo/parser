@@ -24,7 +24,9 @@ export var environments = [
 	{ browserName: 'firefox', platform: [ 'WINDOWS', 'MAC' ] },
 	{ browserName: 'chrome', platform: [ 'WINDOWS', 'MAC' ] },
 	{ browserName: 'safari', version: '8', platform: 'MAC' },
-	{ browserName: [ 'iPad', 'iPhone' ], platform: 'MAC' }
+	{ browserName: 'iPad', platform: 'MAC' },
+	{ browserName: 'iPhone', platform: 'MAC' }/*,
+	{ broswerName: 'Android', platform: 'ANDROID' }*/
 ];
 
 // Maximum number of simultaneous integration tests that should be executed on the remote WebDriver service
