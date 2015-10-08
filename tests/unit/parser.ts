@@ -1,6 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { jsdom } from 'src/has!host-node?../support/jsdom';
+import { Handle } from 'dojo-core/interfaces';
 import parse, {
 	register,
 	ParserObject,
@@ -9,7 +10,8 @@ import parse, {
 	byId,
 	byNode,
 	remove,
-	watch
+	watch,
+	WatchChanges
 } from '../../src/parser';
 
 registerSuite(function () {
@@ -344,12 +346,32 @@ registerSuite(function () {
 			});
 		},
 		'watching': {
+			'implied doc': function () {
+				if (typeof document === 'undefined') {
+					this.skip('Environment does not have global document');
+				}
+
+				const dfd = this.async(250);
+
+				doc.body.innerHTML = '';
+				const foo = doc.createElement('my-foo');
+
+				const handle = register('my-foo', { Ctor: Foo });
+				const watchHandle = watch();
+				doc.body.appendChild(foo);
+				setTimeout(dfd.callback(function () {
+					const instance = byNode(foo);
+					assert.instanceOf(instance, Foo, 'object was instantiated');
+					handle.destroy();
+					watchHandle.destroy();
+				}), 50);
+			},
 			'instantiation': function () {
-				const dfd = this.async(500);
+				const dfd = this.async(250);
 
 				doc.body.innerHTML = `<div>
 					<my-foo id="foo1"></my-foo>
-					<div is="my-foo" id="foo2"></div>
+					<div id="foo2"></div>
 				</div>`;
 				const foo1 = <HTMLElement> doc.getElementById('foo1');
 				const foo2 = <HTMLElement> doc.getElementById('foo2');
@@ -361,6 +383,7 @@ registerSuite(function () {
 				const watchHandle = watch({ root: doc });
 				doc.body.appendChild(foo3);
 				doc.body.firstChild.removeChild(foo1);
+				foo2.setAttribute('is', 'my-foo');
 				setTimeout(dfd.callback(function () {
 					const myFoo3byNode = byNode(foo3);
 					const myFoo3byId = byId('foo3');
@@ -374,6 +397,98 @@ registerSuite(function () {
 					watchHandle.destroy();
 					handle.destroy();
 				}), 50);
+			},
+			'removal': function () {
+				const dfd = this.async(250);
+
+				doc.body.innerHTML = '';
+				const foo4 = doc.createElement('my-foo');
+				foo4.id = 'foo4';
+				const foo5 = doc.createElement('div');
+				foo5.setAttribute('is', 'my-foo');
+				foo5.id = 'foo5';
+				doc.body.appendChild(foo4);
+				doc.body.appendChild(foo5);
+
+				const handle = register('my-foo', { Ctor: Foo, doc: doc });
+
+				parse({ root: doc }).then(function (results) {
+					assert.strictEqual(results.length, 2, '2 objects instantiated');
+					assert(byId('foo4'), 'foo4 exists');
+					assert(byId('foo5'), 'foo5 exists');
+					assert(byNode(foo4), 'foo4 exists');
+					assert(byNode(foo5), 'foo5 exists');
+					handle.destroy();
+					const watchHandle = watch({ root: doc });
+					while (doc.body.lastChild) {
+						doc.body.removeChild(doc.body.lastChild);
+					}
+					setTimeout(dfd.callback(function () {
+						assert.isUndefined(byId('foo4'), 'foo4 removed');
+						assert.isUndefined(byId('foo5'), 'foo5 removed');
+						assert.isUndefined(byNode(foo4), 'foo4 removed');
+						assert.isUndefined(byNode(foo5), 'foo5 removed');
+						watchHandle.destroy();
+					}), 50);
+				});
+			},
+			'double watch': function () {
+				const watchHandle = watch({ root: doc });
+				assert.throws(function () {
+					watch({ root: doc });
+				}, Error, 'Only one active parser watch at any given time.');
+
+				watchHandle.destroy();
+
+				/* now shouldn't throw */
+				const watchHandle2 = watch({ root: doc });
+				watchHandle2.destroy();
+			},
+			'callback': function () {
+				const dfd = this.async(500);
+				let watchHandle: Handle;
+				let handle: RegistrationHandle<any>;
+				let callbackCount = 0;
+
+				const foo6 = doc.createElement('my-foo');
+				const foo7 = doc.createElement('div');
+				foo7.setAttribute('is', 'my-foo');
+
+				function callback(changes: WatchChanges): void {
+					callbackCount++;
+					if (callbackCount === 1) {
+						assert.strictEqual(changes.added.length, 2, 'two objects were added');
+						assert.strictEqual(changes.removed.length, 0, 'no objects were removed');
+						assert(byNode(foo6), 'object in registry');
+						assert(byNode(foo7), 'object in registry');
+						while (doc.body.lastChild) {
+							doc.body.removeChild(doc.body.lastChild);
+						}
+					}
+					else if (callbackCount === 2) {
+						assert.strictEqual(changes.added.length, 0, 'no objects were added');
+						assert.strictEqual(changes.removed.length, 2, 'two objects were removed');
+						assert.isUndefined(byNode(foo6), 'object not in registry');
+						assert.isUndefined(byNode(foo7), 'object not in registry');
+						handle.destroy();
+						watchHandle.destroy();
+						dfd.resolve();
+					}
+					else {
+						throw new Error('Callback called too many times');
+					}
+				}
+
+				while (doc.body.lastChild) {
+					doc.body.removeChild(doc.body.lastChild);
+				}
+
+				watchHandle = watch({ root: doc, callback: callback });
+
+				handle = register('my-foo', { Ctor: Foo, doc: doc });
+
+				doc.body.appendChild(foo6);
+				doc.body.appendChild(foo7);
 			}
 		}
 	};

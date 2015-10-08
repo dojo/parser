@@ -222,7 +222,7 @@ export function register(tagName: string|RegistrationOptionsMap, options?: Regis
 
 const slice = Array.prototype.slice;
 
-interface WatchChanges {
+export interface WatchChanges {
 	added: ParserObject[];
 	removed: ParserObject[];
 }
@@ -249,7 +249,7 @@ export function watch(options?: WatchOptions): Handle {
 	}
 
 	function doCallback(added: ParserObject[], removed: ParserObject[]): void {
-		if (callback && added.length || removed.length) {
+		if (callback && (added.length || removed.length)) {
 			queueMicroTask(() => {
 				callback({
 					added: added,
@@ -292,10 +292,17 @@ export function watch(options?: WatchOptions): Handle {
 		const removed: ParserObject[] = [];
 		changes.forEach(change => {
 			if (change.type === ChangeType.Added) {
-				instantiateParserObject(change.node, reject);
+				const instance = instantiateParserObject(change.node, reject);
+				if (instance) {
+					added.push(instance);
+				}
 			}
 			if (change.type === ChangeType.Removed) {
-				dereferenceParserObject(nodeMap.get(change.node));
+				const instance = nodeMap.get(change.node);
+				if (instance) {
+					dereferenceParserObject(instance);
+					removed.push(instance);
+				}
 			}
 		});
 		doCallback(added, removed);
