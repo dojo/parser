@@ -1,6 +1,6 @@
 # dojo-parser
 
-[![Build Status](https://travis-ci.org/dojo/parser.svg?branch=master)](https://travis-ci.org/dojo/parser)
+[![Build Status](https://travis-ci.org/dojo/parser.svg?branch=master)](https://travis-ci.org/dojo/parser) [![codecov.io](http://codecov.io/github/dojo/parser/coverage.svg?branch=master)](http://codecov.io/github/dojo/parser?branch=master)
 
 A package for declaratively instantiating widgets.
 
