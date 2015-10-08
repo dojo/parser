@@ -1,7 +1,16 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { jsdom } from 'src/has!host-node?../support/jsdom';
-import parse, { register, ParserObject, RegistrationHandle } from '../../src/parser';
+import parse, {
+	register,
+	ParserObject,
+	ParserObjectConstructor,
+	RegistrationHandle,
+	byId,
+	byNode,
+	remove,
+	watch
+} from '../../src/parser';
 
 registerSuite(function () {
 	let doc: Document;
@@ -283,6 +292,88 @@ registerSuite(function () {
 						'all the right objects instantiated');
 					handle.destroy();
 				});
+			}
+		},
+		'byId': function () {
+			assert.instanceOf(byId('myFoo1'), Foo, 'Instance retrieved and right type');
+			assert.instanceOf(byId('myBar1'), Bar, 'Instance retrieved and right type');
+			assert.isUndefined(byId('foo'), 'Returns undefined when ID not present');
+		},
+		'byNode': function () {
+			doc.body.innerHTML = '';
+			const myFooNode = doc.createElement('my-foo');
+			const myBarNode = doc.createElement('div');
+			myBarNode.setAttribute('is', 'my-bar');
+
+			const proto = {
+				baz: <string> undefined
+			};
+			doc.body.appendChild(myFooNode);
+			doc.body.appendChild(myBarNode);
+
+			const handle = register({
+				'my-foo': { Ctor: Foo, doc: doc },
+				'my-bar': { Ctor: Bar, doc: doc }
+			});
+
+			return parse({ root: doc }).then(function (results) {
+				assert.strictEqual(results.length, 2, '2 objects instantiated');
+				assert.strictEqual(byNode(myFooNode), results[0], 'the right object is retrieved');
+				assert.strictEqual(byNode(myBarNode), results[1], 'the right object is retrieved');
+				handle.destroy();
+			});
+		},
+		'remove': function () {
+			doc.body.innerHTML = `<div is="my-foo" id="myFoo5"></div>`;
+			const myFooNode = doc.createElement('my-foo');
+			myFooNode.id = 'myFoo6';
+			doc.body.appendChild(myFooNode);
+
+			const handle = register('my-foo', { Ctor: Foo, doc: doc });
+
+			return parse({ root: doc }).then(function (results) {
+				const myFoo5 = byId('myFoo5');
+				const myFoo6 = byNode(myFooNode);
+				assert(myFoo5, 'an object retrieved');
+				assert(myFoo6, 'an object retrieved');
+				remove(myFoo5);
+				remove(myFoo6);
+				assert.isUndefined(byId('myFoo5'), 'byId returns undefined');
+				assert.isUndefined(byNode(myFooNode), 'byNode returns undefined');
+				handle.destroy();
+			});
+		},
+		'watching': {
+			'instantiation': function () {
+				const dfd = this.async(500);
+
+				doc.body.innerHTML = `<div>
+					<my-foo id="foo1"></my-foo>
+					<div is="my-foo" id="foo2"></div>
+				</div>`;
+				const foo1 = <HTMLElement> doc.getElementById('foo1');
+				const foo2 = <HTMLElement> doc.getElementById('foo2');
+				const foo3 = doc.createElement('my-foo');
+				foo3.id = 'foo3';
+
+				const handle = register('my-foo', { Ctor: Foo, doc: doc });
+
+				const watchHandle = watch({ root: doc });
+				doc.body.appendChild(foo3);
+				doc.body.firstChild.removeChild(foo1);
+				setTimeout(dfd.callback(function () {
+					const myFoo3byNode = byNode(foo3);
+					const myFoo3byId = byId('foo3');
+					assert.instanceOf(myFoo3byNode, Foo, 'instanted object referenced by node');
+					assert.instanceOf(myFoo3byId, Foo, 'instanted object referenced by node');
+					assert.strictEqual(myFoo3byNode, myFoo3byId, 'reference objects are correct');
+					assert.isUndefined(byId('foo1'), 'no object instantiated');
+					assert.isUndefined(byId('foo2'), 'no object instantiated');
+					assert.isUndefined(byNode(foo1), 'no object instantiated');
+					assert.isUndefined(byNode(foo2), 'no object instantiated');
+					watchHandle.destroy();
+					handle.destroy();
+				}), 50);
 			}
 		}
 	};
