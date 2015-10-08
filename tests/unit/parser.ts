@@ -351,7 +351,7 @@ registerSuite(function () {
 					this.skip('Environment does not have global document');
 				}
 
-				const dfd = this.async(250);
+				const dfd = this.async(500);
 
 				doc.body.innerHTML = '';
 				const foo = doc.createElement('my-foo');
@@ -364,10 +364,10 @@ registerSuite(function () {
 					assert.instanceOf(instance, Foo, 'object was instantiated');
 					handle.destroy();
 					watchHandle.destroy();
-				}), 50);
+				}), 100);
 			},
 			'instantiation': function () {
-				const dfd = this.async(250);
+				const dfd = this.async(500);
 
 				doc.body.innerHTML = `<div>
 					<my-foo id="foo1"></my-foo>
@@ -396,10 +396,10 @@ registerSuite(function () {
 					assert.isUndefined(byNode(foo2), 'no object instantiated');
 					watchHandle.destroy();
 					handle.destroy();
-				}), 50);
+				}), 100);
 			},
 			'removal': function () {
-				const dfd = this.async(250);
+				const dfd = this.async(500);
 
 				doc.body.innerHTML = '';
 				const foo4 = doc.createElement('my-foo');
@@ -429,7 +429,7 @@ registerSuite(function () {
 						assert.isUndefined(byNode(foo4), 'foo4 removed');
 						assert.isUndefined(byNode(foo5), 'foo5 removed');
 						watchHandle.destroy();
-					}), 50);
+					}), 100);
 				});
 			},
 			'double watch': function () {
