@@ -308,6 +308,6 @@ module.exports = function (grunt) {
 	grunt.registerTask('test', [ 'dev', 'intern:client', 'remapIstanbul:client' ]);
 	grunt.registerTask('test-local', [ 'dev', 'intern:local' ]);
 	grunt.registerTask('test-proxy', [ 'dev', 'intern:proxy' ]);
-	grunt.registerTask('ci', [ 'tslint', 'dev', 'intern:client', 'intern:runner', 'coverage' ]);
+	grunt.registerTask('ci', [ 'tslint', 'dev', 'intern:client', 'intern:runner', 'coverage', 'clean' ]);
 	grunt.registerTask('default', [ 'clean', 'dev' ]);
 };
