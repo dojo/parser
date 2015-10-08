@@ -3,6 +3,7 @@ import * as has from './has';
 import Promise from 'dojo-core/Promise';
 import WeakMap from 'dojo-core/WeakMap';
 import Registry from 'dojo-core/Registry';
+import { queueMicroTask } from 'dojo-core/queue';
 
 export interface ParserObject {
 	node: HTMLElement;
@@ -65,6 +66,7 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
 				}
 				catch (err) {
 					reject(new SyntaxError('Invalid data-options: ' + err.message + ' in "' + optionsString + '"'));
+					return;
 				}
 			}
 			instance = new Ctor(node, options);
@@ -200,6 +202,9 @@ export default function parse(options?: ParserOptions): Promise<ParserObject[]> 
 					results.push(parserObject);
 				}
 			});
-		resolve(results);
+		/* On Microsoft Edge, if a Promise is first rejected and then resolved in the same turn
+		 * Edge will treat it as resolved and not call rejected.  Therefore we will resolve async
+		 * and that ensure the rejection, if it occurs, will get called */
+		queueMicroTask(() => resolve(results));
 	});
 }
