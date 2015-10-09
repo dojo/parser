@@ -472,7 +472,8 @@ registerSuite(function () {
 						assert.isUndefined(byNode(foo7), 'object not in registry');
 						handle.destroy();
 						watchHandle.destroy();
-						dfd.resolve();
+						/* doing this to ensure callback does not get called again */
+						setTimeout(dfd.resolve, 50);
 					}
 					else {
 						throw new Error('Callback called too many times');
@@ -489,6 +490,47 @@ registerSuite(function () {
 
 				doc.body.appendChild(foo6);
 				doc.body.appendChild(foo7);
+			},
+			'sub body watching': function () {
+				const dfd = this.async();
+
+				const div1 = doc.createElement('div');
+				const div2 = doc.createElement('div');
+				doc.body.appendChild(div1);
+				doc.body.appendChild(div2);
+
+				const watchHandle = watch({ root: div1, callback: callback });
+
+				const handle = register('my-foo', { Ctor: Foo, doc: doc });
+
+				let callbackCount = 0;
+
+				function callback(changes: WatchChanges) {
+					callbackCount++;
+					if (callbackCount === 1) {
+						assert.strictEqual(changes.added.length, 1, 'only one object added');
+						assert.strictEqual(changes.removed.length, 0, 'no objects removed');
+						assert.instanceOf(byId('foo8'), Foo, 'foo8 exists and is proper type');
+						assert.isUndefined(byId('foo9'), 'foo9 does not exist');
+						div1.removeChild(div1.firstChild);
+						div2.removeChild(div2.firstChild);
+					}
+					else if (callbackCount === 2) {
+						assert.strictEqual(changes.added.length, 0, 'no objects added');
+						assert.strictEqual(changes.removed.length, 1, 'one object removed');
+						assert.isUndefined(byId('foo8'), 'foo8 no longer registered');
+						handle.destroy();
+						watchHandle.destroy();
+						/* doing this to just make sure callback does not get called again */
+						setTimeout(dfd.resolve, 50);
+					}
+					else {
+						throw new Error('callback called too many times');
+					}
+				}
+
+				div1.innerHTML = `<my-foo id="foo8"></my-foo>`;
+				div2.innerHTML = `<my-foo id="foo9"></my-foo>`;
 			}
 		}
 	};
