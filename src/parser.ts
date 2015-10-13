@@ -12,26 +12,32 @@ export interface ParserObject {
 	[name: string]: any;
 }
 
-export interface ParserObjectConstructor<T extends ParserObject> {
-	new (node?: HTMLElement, options?: any): T;
+export interface ParserObjectConstructor<T extends ParserObject, O> {
+	new (node?: HTMLElement, options?: O): T;
 	prototype: T;
 }
 
-export interface RegistrationOptions<T extends ParserObject> {
+export interface ParserFactory<T extends ParserObject, O> {
+	(node?: HTMLElement, options?: O): T;
+	prototype: any;
+}
+
+export interface RegistrationOptions<T extends ParserObject, O> {
 	proto?: T;
-	Ctor?: ParserObjectConstructor<T>;
+	Ctor?: ParserObjectConstructor<T, O>;
+	factory?: ParserFactory<T, O>;
 	doc?: Document;
 }
 
 export interface RegistrationOptionsMap {
-	[tagName: string]: RegistrationOptions<any>;
+	[tagName: string]: RegistrationOptions<any, any>;
 }
 
 /**
  * A map of registry instances associated with documents
  * @type {WeakMap}
  */
-const registryDocumentMap = new WeakMap<Document, Registry<ParserObjectConstructor<any>>>();
+const registryDocumentMap = new WeakMap<Document, Registry<ParserFactory<any, any>>>();
 
 /**
  * A map of instances mapped back to their nodes
@@ -57,8 +63,8 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
 	let instance = nodeMap.get(node);
 
 	if (registry && !instance) {
-		const Ctor = registry.match(node);
-		if (Ctor) {
+		const factory = registry.match(node);
+		if (factory) {
 			let options: any;
 			const optionsString = node.getAttribute('data-options');
 			if (optionsString) {
@@ -70,7 +76,7 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
 					return;
 				}
 			}
-			instance = new Ctor(node, options);
+			instance = factory(node, options);
 			instance.node = node;
 			if (node.id) {
 				instance.id = node.id;
@@ -134,16 +140,16 @@ interface ParserRejector {
 	(error?: Error): void;
 }
 
-export interface RegistrationHandle<T extends ParserObject> extends Handle {
-	Ctor: ParserObjectConstructor<T>;
+export interface RegistrationHandle<T extends ParserObject, O> extends Handle {
+	factory: ParserFactory<T, O>;
 }
 
-interface ParserObjectConstructorMap {
-	[tagName: string]: ParserObjectConstructor<any>;
+interface ParserFactoryMap {
+	[tagName: string]: ParserFactory<any, any>;
 }
 
 interface RegistrationMapHandle extends Handle {
-	Ctors: ParserObjectConstructorMap;
+	factories: ParserFactoryMap;
 }
 
 /**
@@ -156,36 +162,44 @@ interface RegistrationMapHandle extends Handle {
  *                                                 a constructor function (`Ctor`) or a hash of constructor
  *                                                 functions (`Ctors`).
  */
-export function register<T extends ParserObject>(tagName: string, options: RegistrationOptions<T>): RegistrationHandle<T>;
+export function register<T extends ParserObject, O>(tagName: string, options: RegistrationOptions<T, O>): RegistrationHandle<T, O>;
 export function register(map: RegistrationOptionsMap): RegistrationMapHandle;
-export function register(tagName: string|RegistrationOptionsMap, options?: RegistrationOptions<any>): any {
+export function register(tagName: string|RegistrationOptionsMap, options?: RegistrationOptions<any, any>): any {
 
 	const registryHandles: Handle[] = [];
 
-	function doRegistration(tagName: string, options: RegistrationOptions<any>): ParserObjectConstructor<any> {
+	function doRegistration(tagName: string, options: RegistrationOptions<any, any>): ParserFactory<any, any> {
 		tagName = tagName.toLowerCase();
-		let Ctor: any;
-		if (!options.Ctor && options.proto) {
+		let factory: any;
+		if ((!options.Ctor || !options.factory) && options.proto) {
 			const doc: Document = options.doc || document;
-			Ctor = function ParserObject(node?: HTMLElement, options?: any): void {
+			factory = function ParserObject(node?: HTMLElement, options?: any): any {
+				const instance = Object.create(factory.prototype);
 				for (let key in options) {
-					this[key] = options[key];
+					instance[key] = options[key];
 				}
 				if (!node && !this.node) {
-					this.node = doc.createElement(<string> tagName);
+					instance.node = doc.createElement(<string> tagName);
 				}
+				return instance;
 			};
-			Ctor.prototype = <ParserObject> options.proto;
+			factory.prototype = <ParserObject> options.proto;
 		}
-		else if (options.Ctor) {
-			Ctor = options.Ctor;
+		else if (options.Ctor && !options.factory) {
+			const Ctor = options.Ctor;
+			factory = function ParserObject(node?: HTMLElement, options?: any): any {
+				return new Ctor(node, options);
+			};
+		}
+		else if (options.factory) {
+			factory = options.factory;
 		}
 		else {
 			throw new SyntaxError('Missing either "Ctor" or "proto" in options.');
 		}
 		let registry = registryDocumentMap.get(options.doc || document);
 		if (!registry) {
-			registryDocumentMap.set(options.doc || document, (registry = new Registry<ParserObjectConstructor<any>>(null)));
+			registryDocumentMap.set(options.doc || document, (registry = new Registry<ParserFactory<any, any>>(null)));
 		}
 		registryHandles.push(registry.register(function (node: HTMLElement): boolean {
 			if (node.tagName.toLowerCase() === tagName) {
@@ -195,8 +209,8 @@ export function register(tagName: string|RegistrationOptionsMap, options?: Regis
 			if (attrIs && attrIs.toLowerCase() === tagName) {
 				return true;
 			}
-		}, Ctor));
-		return Ctor;
+		}, factory));
+		return factory;
 	}
 
 	/* Because handles are bimorphic, depending on arguments, using a sledgehammer of any */
@@ -208,14 +222,14 @@ export function register(tagName: string|RegistrationOptionsMap, options?: Regis
 
 	if (typeof tagName !== 'string') {
 		const map = tagName;
-		const registrationMap: ParserObjectConstructorMap = {};
+		const registrationMap: ParserFactoryMap = {};
 		for (let tag in map) {
 			registrationMap[tag] = doRegistration(tag, map[tag]);
 		}
-		handle.Ctors = registrationMap;
+		handle.factories = registrationMap;
 	}
 	else {
-		handle.Ctor = doRegistration(tagName, options);
+		handle.factory = doRegistration(tagName, options);
 	}
 	return handle;
 }
