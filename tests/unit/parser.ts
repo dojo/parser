@@ -16,7 +16,6 @@ import parse, {
 
 registerSuite(function () {
 	let doc: Document;
-	let handle: RegistrationHandle<any>;
 
 	class Foo implements ParserObject {
 		constructor(node: HTMLElement, options?: any) {
@@ -68,14 +67,14 @@ registerSuite(function () {
 					doc: doc
 				});
 
-				const foo = new handle.Ctor();
+				const foo = handle.factory();
 				assert(foo.node, 'There is something assigned to foo.node');
 				assert.strictEqual(foo.node.tagName.toLowerCase(), 'my-foo',
 					'Constructor creates a node with the right tagName');
-				assert.strictEqual(handle.Ctor.prototype, proto,
+				assert.strictEqual(handle.factory.prototype, proto,
 					'The passed prototype is the constructors prototype');
 
-				const foo1 = new handle.Ctor(<HTMLElement> null, {
+				const foo1 = handle.factory(<HTMLElement> null, {
 					foo: 'bar'
 				});
 				assert.strictEqual(foo1.foo, 'bar', 'Options are mixed in properly');
@@ -87,8 +86,8 @@ registerSuite(function () {
 					doc: doc
 				});
 
-				assert.strictEqual(handle.Ctor, Foo,
-					'The passed constructor should equal the handles constructor');
+				const instance = handle.factory();
+				assert.instanceOf(instance, Foo, 'instance is an instance of Foo');
 				handle.destroy();
 			},
 			'Ctor': function () {
@@ -97,11 +96,13 @@ registerSuite(function () {
 				}
 
 				interface FooConstructor {
-					new (object?: any): FooType;
+					new (node?: HTMLElement, object?: any): FooType;
 					prototype: FooType;
 				}
 
-				function Foo(object?: any) {}
+				function Foo(node?: HTMLElement, object?: any): FooType {
+					return;
+				}
 
 				Foo.prototype = {
 					id: undefined,
@@ -114,8 +115,28 @@ registerSuite(function () {
 					Ctor: <FooConstructor> <any> Foo,
 					doc: doc
 				});
-				assert.strictEqual(handle.Ctor, Foo,
-					'The passed constructor should equal the handles constructor');
+				const instance = handle.factory();
+				assert.instanceOf(instance, Foo, 'instance is an instance of Foo');
+				handle.destroy();
+			},
+			'factory': function () {
+				const proto = {
+					id: <string> undefined,
+					node: <HTMLElement> undefined,
+					foo: 'foo'
+				};
+
+				const factory = function factory(node: HTMLElement, options?: any): typeof proto {
+					return Object.create(proto);
+				};
+
+				const handle = register('my-foo', {
+					factory: factory,
+					doc: doc
+				});
+				const instance = handle.factory();
+				assert.strictEqual(factory, handle.factory, 'factory should be passed through');
+				assert.strictEqual(instance.foo, 'foo', 'created with right prototype');
 				handle.destroy();
 			},
 			'map': function () {
@@ -125,14 +146,34 @@ registerSuite(function () {
 					baz: true
 				};
 
+				interface QatType extends ParserObject {
+					node: HTMLElement;
+					id: string;
+					qat: boolean;
+				}
+
+				const factory = function factory(node: HTMLElement, options?: any): QatType {
+					return Object.create({
+						node: undefined,
+						id: undefined,
+						qat: true
+					});
+				};
+
 				const handle = register({
 					'my-foo': { Ctor: Foo, doc: doc },
 					'my-bar': { Ctor: Bar, doc: doc },
-					'my-baz': { proto: proto, doc: doc }
+					'my-baz': { proto: proto, doc: doc },
+					'my-qat': { factory: factory, doc: doc }
 				});
-				assert.strictEqual(handle.Ctors['my-foo'], Foo, 'Constructor should match');
-				assert.strictEqual(handle.Ctors['my-bar'], Bar, 'Constructor should match');
-				assert.strictEqual(handle.Ctors['my-baz'].prototype, proto, 'Prototype should match');
+				const foo: Foo = handle.factories['my-foo'](null);
+				const bar: Bar = handle.factories['my-bar'](null);
+				const baz: typeof proto = handle.factories['my-baz'](null);
+				const qat: QatType = handle.factories['my-qat'](null);
+				assert.instanceOf(foo, Foo, 'foo is instance of Foo');
+				assert.instanceOf(bar, Bar, 'bar is instance of Bar');
+				assert.isTrue(baz.baz, 'baz.baz is true');
+				assert.isTrue(qat.qat, 'qat.qat is true');
 				handle.destroy();
 			},
 			'throws': function () {
@@ -447,7 +488,7 @@ registerSuite(function () {
 			'callback': function () {
 				const dfd = this.async(500);
 				let watchHandle: Handle;
-				let handle: RegistrationHandle<any>;
+				let handle: RegistrationHandle<any, any>;
 				let callbackCount = 0;
 
 				const foo6 = doc.createElement('my-foo');
