@@ -120,7 +120,24 @@ registerSuite(function () {
 				handle.destroy();
 			},
 			'factory': function () {
-				//
+				const proto = {
+					id: <string> undefined,
+					node: <HTMLElement> undefined,
+					foo: 'foo'
+				};
+
+				const factory = function factory(node: HTMLElement, options?: any): typeof proto {
+					return Object.create(proto);
+				};
+
+				const handle = register('my-foo', {
+					factory: factory,
+					doc: doc
+				});
+				const instance = handle.factory();
+				assert.strictEqual(factory, handle.factory, 'factory should be passed through');
+				assert.strictEqual(instance.foo, 'foo', 'created with right prototype');
+				handle.destroy();
 			},
 			'map': function () {
 				const proto = {
