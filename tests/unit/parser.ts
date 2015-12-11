@@ -36,6 +36,26 @@ registerSuite(function () {
 		bar: number = 1;
 	}
 
+	function createDocument(): Document {
+		let doc: Document;
+
+		if (typeof document !== 'undefined') {
+			if (typeof document.implementation.createHTMLDocument === 'function') {
+				doc = document.implementation.createHTMLDocument('');
+			}
+			else {
+				const doctype = document.implementation.createDocumentType('html', '', '');
+				doc = document.implementation.createDocument('', 'html', doctype);
+				doc.body = <HTMLElement> doc.createElementNS('http://www.w3.org/1999/xhtml', 'body');
+			}
+		}
+		else {
+			doc = jsdom('<html><body></body></html>');
+		}
+
+		return doc;
+	}
+
 	return {
 		name: 'src/parser',
 		setup: function () {
@@ -296,10 +316,34 @@ registerSuite(function () {
 				});
 			}
 		},
-		'byId': function () {
-			assert.instanceOf(byId('myFoo1'), Foo, 'Instance retrieved and right type');
-			assert.instanceOf(byId('myBar1'), Bar, 'Instance retrieved and right type');
-			assert.isUndefined(byId('foo'), 'Returns undefined when ID not present');
+		'byId': {
+			'implied document': function () {
+				assert.instanceOf(byId('myFoo1'), Foo, 'Instance retrieved and right type');
+				assert.instanceOf(byId('myBar1'), Bar, 'Instance retrieved and right type');
+				assert.isUndefined(byId('foo'), 'Returns undefined when ID not present');
+			},
+
+			'explicit document': function () {
+				const doc: Document = createDocument();
+				const body: HTMLElement = doc.body;
+
+				body.innerHTML = `<div>
+					<my-foo id="myFoo1"></my-foo>
+				</div>`;
+
+				const handle = register('my-foo', {
+					Ctor: Foo,
+					doc: doc
+				});
+
+				return parse({ root: doc }).then(function () {
+					assert.instanceOf(byId('myFoo1', doc), Foo, 'Instance retrieved and right type');
+					assert.notStrictEqual(byId('myFoo1', doc), byId('myFoo1'),
+						'Instances retrieved from different documents and different objects.');
+					assert.isUndefined(byId('foo', doc), 'Returns undefined when ID not present');
+					handle.destroy();
+				});
+			}
 		},
 		'byNode': function () {
 			doc.body.innerHTML = '';
