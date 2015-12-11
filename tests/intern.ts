@@ -33,7 +33,11 @@ export var environments = [
 export var maxConcurrency = 2;
 
 // Name of the tunnel class to use for WebDriver tests
-export var tunnel = 'BrowserStackTunnel';
+export var tunnel = 'SauceLabsTunnel';
+export var tunnelOptions = {
+	username: 'mwistrand',
+	accessKey: 'baa1c848-129b-4eb7-81c1-4a5b7037a9cb'
+};
 
 // Configuration options for the module loader; any AMD configuration options supported by the specified AMD loader
 // can be used here

@@ -6,6 +6,10 @@ import Registry from 'dojo-core/Registry';
 import { queueMicroTask } from 'dojo-core/queue';
 import domWatch, { WatcherRecord, ChangeType } from './watch';
 
+export interface IdMap {
+	[id: string]: ParserObject;
+}
+
 export interface ParserObject {
 	node: HTMLElement;
 	id: string;
@@ -42,7 +46,7 @@ const nodeMap = new WeakMap<HTMLElement, ParserObject>();
 /**
  * A map of document objects to a hash of the object ids and their objects
  */
-const idDocumentMap = new WeakMap<Document, { [id: string]: ParserObject }>();
+const idDocumentMap = new WeakMap<Document, IdMap>();
 
 /**
  * Takes a DOM node and inspects it to see if it should instantiate an object based on its tag name as
@@ -75,14 +79,14 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
 			if (node.id) {
 				let idMap = idDocumentMap.get(node.ownerDocument);
 				if (!idMap) {
-					idDocumentMap.set(node.ownerDocument, (idMap = <{ [id: string]: ParserObject }>{}));
+					idDocumentMap.set(node.ownerDocument, (idMap = <IdMap> {}));
 				}
 				instance.id = node.id;
 				if (!(instance.id in idMap)) {
 					idMap[instance.id] = instance;
 				}
 				else {
-					throw new Error('An instance has already been registered for ID "' + node.id + '".');
+					throw new Error(`An instance has already been registered for ID "${node.id}".`);
 				}
 			}
 			nodeMap.set(node, instance);
