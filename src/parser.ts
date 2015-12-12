@@ -6,7 +6,11 @@ import Registry from 'dojo-core/Registry';
 import { queueMicroTask } from 'dojo-core/queue';
 import domWatch, { WatcherRecord, ChangeType } from './watch';
 
-export interface IdMap {
+function isDocument(value: any): value is Document {
+	return value instanceof Document;
+}
+
+interface IdMap {
 	[id: string]: ParserObject;
 }
 
@@ -128,13 +132,15 @@ export function byNode<T extends ParserObject>(node: HTMLElement): T {
 
 /**
  * The public API for retrieving a parser object by ID
- * @param  {string}                 id The ID of the parser object to retrieve
  * @param  {Document}               doc The optional Document. Defaults to `document`.
+ * @param  {string}                 id The ID of the parser object to retrieve
  * @return {T extends ParserObject}    The instance associated with the ID or `undefiend`
  */
-export function byId<T extends ParserObject>(id: string, doc: Document = document): T {
-	const idMap = idDocumentMap.get(doc);
-	return idMap && <T> idMap[id];
+export function byId<T extends ParserObject>(id: string): T;
+export function byId<T extends ParserObject>(doc: Document, id: string): T;
+export function byId<T extends ParserObject>(doc: Document | string, id?: string): T {
+	const idMap = isDocument(doc) ? idDocumentMap.get(<Document> doc) : idDocumentMap.get(document);
+	return idMap && <T> idMap[id || <string> doc];
 }
 
 /**

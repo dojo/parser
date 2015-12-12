@@ -337,10 +337,10 @@ registerSuite(function () {
 				});
 
 				return parse({ root: doc }).then(function () {
-					assert.instanceOf(byId('myFoo1', doc), Foo, 'Instance retrieved and right type');
-					assert.notStrictEqual(byId('myFoo1', doc), byId('myFoo1'),
+					assert.instanceOf(byId(doc, 'myFoo1'), Foo, 'Instance retrieved and right type');
+					assert.notStrictEqual(byId(doc, 'myFoo1'), byId('myFoo1'),
 						'Instances retrieved from different documents and different objects.');
-					assert.isUndefined(byId('foo', doc), 'Returns undefined when ID not present');
+					assert.isUndefined(byId(doc, 'foo'), 'Returns undefined when ID not present');
 					handle.destroy();
 				});
 			}
