@@ -111,17 +111,13 @@ module.exports = function (grunt) {
 				runType: 'runner',
 				config: '<%= devDirectory %>/tests/intern'
 			},
-			runner: {
+			browserstack: {},
+			saucelabs: {
 				options: {
-					reporters: [
-						'Combined',
-						{
-							id: 'node_modules/remap-istanbul/lib/intern-reporters/JsonCoverage',
-							filename: 'coverage-runner.json'
-						}
-					]
+					config: '<%= devDirectory %>/tests/intern-saucelabs'
 				}
 			},
+			remote: {},
 			local: {
 				options: {
 					config: '<%= devDirectory %>/tests/intern-local',
@@ -308,6 +304,6 @@ module.exports = function (grunt) {
 	grunt.registerTask('test', [ 'dev', 'intern:client', 'remapIstanbul:client' ]);
 	grunt.registerTask('test-local', [ 'dev', 'intern:local' ]);
 	grunt.registerTask('test-proxy', [ 'dev', 'intern:proxy' ]);
-	grunt.registerTask('ci', [ 'tslint', 'dev', 'intern:client', 'intern:runner', 'coverage', 'clean' ]);
+	grunt.registerTask('ci', [ 'tslint', 'dev', 'intern:client', 'intern:remote', 'coverage', 'clean' ]);
 	grunt.registerTask('default', [ 'clean', 'dev' ]);
 };
