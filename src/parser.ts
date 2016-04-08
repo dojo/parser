@@ -6,6 +6,14 @@ import Registry from 'dojo-core/Registry';
 import { queueMicroTask } from 'dojo-core/queue';
 import domWatch, { WatcherRecord, ChangeType } from './watch';
 
+function isDocument(value: any): value is Document {
+	return value instanceof Document;
+}
+
+interface IdMap {
+	[id: string]: ParserObject;
+}
+
 export interface ParserObject {
 	node: HTMLElement;
 	id: string;
@@ -46,9 +54,9 @@ const registryDocumentMap = new WeakMap<Document, Registry<ParserFactory<any, an
 const nodeMap = new WeakMap<HTMLElement, ParserObject>();
 
 /**
- * A hash of the object ids and their objects
+ * A map of document objects to a hash of the object ids and their objects
  */
-const idMap: { [id: string]: ParserObject } = {};
+const idDocumentMap = new WeakMap<Document, IdMap>();
 
 /**
  * Takes a DOM node and inspects it to see if it should instantiate an object based on its tag name as
@@ -79,10 +87,17 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
 			instance = factory(node, options);
 			instance.node = node;
 			if (node.id) {
+				let idMap = idDocumentMap.get(node.ownerDocument);
+				if (!idMap) {
+					idDocumentMap.set(node.ownerDocument, (idMap = <IdMap> {}));
+				}
 				instance.id = node.id;
 				if (!(instance.id in idMap)) {
 					idMap[instance.id] = instance;
-				} /* What to do if it is already there? Maybe have a map per document? */
+				}
+				else {
+					throw new Error(`An instance has already been registered for ID "${node.id}".`);
+				}
 			}
 			nodeMap.set(node, instance);
 		}
@@ -95,14 +110,20 @@ function instantiateParserObject(node: HTMLElement, reject: ParserRejector): Par
  * @param {ParserObject} instance The instance to be dereferences.
  */
 function dereferenceParserObject(instance: ParserObject): void {
-	if (instance) {
-		if (instance.id && instance.id in idMap) {
+	if (instance && instance.node) {
+		const idMap = idDocumentMap.get(instance.node.ownerDocument);
+		if (idMap && instance.id && instance.id in idMap) {
 			delete idMap[instance.id];
+
+			// TODO: Is there a better way to properly remove documents? Since `idDocumentMap` is
+			// a WeakMap, is this truly necessary?
+			if (!Object.keys(idMap).length) {
+				idDocumentMap.delete(instance.node.ownerDocument);
+			}
 		}
-		if (instance.node) {
-			nodeMap.delete(instance.node);
-			instance.node = undefined;
-		}
+
+		nodeMap.delete(instance.node);
+		instance.node = undefined;
 	}
 }
 
@@ -117,11 +138,15 @@ export function byNode<T extends ParserObject>(node: HTMLElement): T {
 
 /**
  * The public API for retrieving a parser object by ID
+ * @param  {Document}               doc The optional Document. Defaults to `document`.
  * @param  {string}                 id The ID of the parser object to retrieve
  * @return {T extends ParserObject}    The instance associated with the ID or `undefiend`
  */
-export function byId<T extends ParserObject>(id: string): T {
-	return <T> idMap[id];
+export function byId<T extends ParserObject>(id: string): T;
+export function byId<T extends ParserObject>(doc: Document, id: string): T;
+export function byId<T extends ParserObject>(doc: Document | string, id?: string): T {
+	const idMap = isDocument(doc) ? idDocumentMap.get(<Document> doc) : idDocumentMap.get(document);
+	return idMap && <T> idMap[id || <string> doc];
 }
 
 /**
@@ -384,3 +409,4 @@ export default function parse(options?: ParseOptions): Promise<ParserObject[]> {
 		queueMicroTask(() => resolve(results));
 	});
 }
+
