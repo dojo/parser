@@ -5,7 +5,6 @@ import { Handle } from 'dojo-core/interfaces';
 import parse, {
 	register,
 	ParserObject,
-	ParserObjectConstructor,
 	RegistrationHandle,
 	byId,
 	byNode,
@@ -392,9 +391,6 @@ registerSuite(function () {
 			const myBarNode = doc.createElement('div');
 			myBarNode.setAttribute('is', 'my-bar');
 
-			const proto = {
-				baz: <string> undefined
-			};
 			doc.body.appendChild(myFooNode);
 			doc.body.appendChild(myBarNode);
 

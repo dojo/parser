@@ -211,9 +211,9 @@ export function register(tagName: string|RegistrationOptionsMap, options?: Regis
 			factory.prototype = <ParserObject> options.proto;
 		}
 		else if (options.Ctor && !options.factory) {
-			const Ctor = options.Ctor;
+			const ctor = options.Ctor;
 			factory = function ParserObject(node?: HTMLElement, options?: any): any {
-				return new Ctor(node, options);
+				return new ctor(node, options);
 			};
 		}
 		else if (options.factory) {
