@@ -11,7 +11,7 @@ import parse, {
 	watch,
 	WatchChanges
 } from '../../src/parser';
-import { shim, patchGlobalConstructor} from '../support/shim-document';
+import { shim} from '../support/shim-document';
 
 registerSuite(function () {
 	let doc: Document;
@@ -354,6 +354,10 @@ registerSuite(function () {
 		},
 		'byId': {
 			'implied document': function () {
+				if (typeof document === 'undefined') {
+					this.skip('Environment does not have global document');
+				}
+
 				assert.instanceOf(byId('myFoo1'), Foo, 'Instance retrieved and right type');
 				assert.instanceOf(byId('myBar1'), Bar, 'Instance retrieved and right type');
 				assert.isUndefined(byId('foo'), 'Returns undefined when ID not present');
@@ -374,7 +378,7 @@ registerSuite(function () {
 
 				return parse({ root: doc }).then(function () {
 					assert.instanceOf(byId(doc, 'myFoo1'), Foo, 'Instance retrieved and right type');
-					assert.notStrictEqual(byId(doc, 'myFoo1'), byId('myFoo1'),
+					assert.notStrictEqual(byId(doc, 'myFoo1'), byId(createDocument(), 'myFoo1'),
 						'Instances retrieved from different documents and different objects.');
 					assert.isUndefined(byId(doc, 'foo'), 'Returns undefined when ID not present');
 					handle.destroy();
@@ -411,13 +415,13 @@ registerSuite(function () {
 			const handle = register('my-foo', { Ctor: Foo, doc: doc });
 
 			return parse({ root: doc }).then(function (results) {
-				const myFoo5 = byId('myFoo5');
+				const myFoo5 = byId(doc, 'myFoo5');
 				const myFoo6 = byNode(myFooNode);
 				assert(myFoo5, 'an object retrieved');
 				assert(myFoo6, 'an object retrieved');
 				remove(myFoo5);
 				remove(myFoo6);
-				assert.isUndefined(byId('myFoo5'), 'byId returns undefined');
+				assert.isUndefined(byId(doc, 'myFoo5'), 'byId returns undefined');
 				assert.isUndefined(byNode(myFooNode), 'byNode returns undefined');
 				handle.destroy();
 			});
@@ -463,12 +467,12 @@ registerSuite(function () {
 				foo2.setAttribute('is', 'my-foo');
 				setTimeout(dfd.callback(function () {
 					const myFoo3byNode = byNode(foo3);
-					const myFoo3byId = byId('foo3');
+					const myFoo3byId = byId(doc, 'foo3');
 					assert.instanceOf(myFoo3byNode, Foo, 'instanted object referenced by node');
 					assert.instanceOf(myFoo3byId, Foo, 'instanted object referenced by node');
 					assert.strictEqual(myFoo3byNode, myFoo3byId, 'reference objects are correct');
-					assert.isUndefined(byId('foo1'), 'no object instantiated');
-					assert.isUndefined(byId('foo2'), 'no object instantiated');
+					assert.isUndefined(byId(doc, 'foo1'), 'no object instantiated');
+					assert.isUndefined(byId(doc, 'foo2'), 'no object instantiated');
 					assert.isUndefined(byNode(foo1), 'no object instantiated');
 					assert.isUndefined(byNode(foo2), 'no object instantiated');
 					watchHandle.destroy();
@@ -491,8 +495,8 @@ registerSuite(function () {
 
 				parse({ root: doc }).then(function (results) {
 					assert.strictEqual(results.length, 2, '2 objects instantiated');
-					assert(byId('foo4'), 'foo4 exists');
-					assert(byId('foo5'), 'foo5 exists');
+					assert(byId(doc, 'foo4'), 'foo4 exists');
+					assert(byId(doc, 'foo5'), 'foo5 exists');
 					assert(byNode(foo4), 'foo4 exists');
 					assert(byNode(foo5), 'foo5 exists');
 					handle.destroy();
@@ -501,13 +505,13 @@ registerSuite(function () {
 						doc.body.removeChild(doc.body.lastChild);
 					}
 					setTimeout(dfd.callback(function () {
-						assert.isUndefined(byId('foo4'), 'foo4 removed');
-						assert.isUndefined(byId('foo5'), 'foo5 removed');
+						assert.isUndefined(byId(doc, 'foo4'), 'foo4 removed');
+						assert.isUndefined(byId(doc, 'foo5'), 'foo5 removed');
 						assert.isUndefined(byNode(foo4), 'foo4 removed');
 						assert.isUndefined(byNode(foo5), 'foo5 removed');
 						watchHandle.destroy();
 					}), 100);
-				});
+				}).catch(dfd.reject);
 			},
 			'double watch': function () {
 				const watchHandle = watch({ root: doc });
@@ -587,15 +591,15 @@ registerSuite(function () {
 					if (callbackCount === 1) {
 						assert.strictEqual(changes.added.length, 1, 'only one object added');
 						assert.strictEqual(changes.removed.length, 0, 'no objects removed');
-						assert.instanceOf(byId('foo8'), Foo, 'foo8 exists and is proper type');
-						assert.isUndefined(byId('foo9'), 'foo9 does not exist');
+						assert.instanceOf(byId(doc, 'foo8'), Foo, 'foo8 exists and is proper type');
+						assert.isUndefined(byId(doc, 'foo9'), 'foo9 does not exist');
 						div1.removeChild(div1.firstChild);
 						div2.removeChild(div2.firstChild);
 					}
 					else if (callbackCount === 2) {
 						assert.strictEqual(changes.added.length, 0, 'no objects added');
 						assert.strictEqual(changes.removed.length, 1, 'one object removed');
-						assert.isUndefined(byId('foo8'), 'foo8 no longer registered');
+						assert.isUndefined(byId(doc, 'foo8'), 'foo8 no longer registered');
 						handle.destroy();
 						watchHandle.destroy();
 						/* doing this to just make sure callback does not get called again */

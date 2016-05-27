@@ -2,7 +2,7 @@ import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 import { Handle } from 'dojo-core/interfaces';
 import watch, { WatcherRecord, ChangeType } from '../../src/watch';
-import { shim, patchGlobalConstructor } from '../support/shim-document';
+import { shim } from '../support/shim-document';
 
 registerSuite(function () {
 	let doc = shim || document;
