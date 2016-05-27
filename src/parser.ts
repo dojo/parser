@@ -169,11 +169,11 @@ export interface RegistrationHandle<T extends ParserObject, O> extends Handle {
 	factory: ParserFactory<T, O>;
 }
 
-interface ParserFactoryMap {
+export interface ParserFactoryMap {
 	[tagName: string]: ParserFactory<any, any>;
 }
 
-interface RegistrationMapHandle extends Handle {
+export interface RegistrationMapHandle extends Handle {
 	factories: ParserFactoryMap;
 }
 
