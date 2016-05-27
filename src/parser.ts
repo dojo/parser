@@ -1,5 +1,5 @@
 import { Handle } from 'dojo-core/interfaces';
-import * as has from './has';
+import has from './has';
 import Promise from 'dojo-core/Promise';
 import WeakMap from 'dojo-core/WeakMap';
 import Registry from 'dojo-core/Registry';
