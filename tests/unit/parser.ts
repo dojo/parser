@@ -1,6 +1,5 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
-import { jsdom } from 'src/has!host-node?../support/jsdom';
 import { Handle } from 'dojo-core/interfaces';
 import parse, {
 	register,
@@ -12,6 +11,7 @@ import parse, {
 	watch,
 	WatchChanges
 } from '../../src/parser';
+import { shim, patchGlobalConstructor} from '../support/shim-document';
 
 registerSuite(function () {
 	let doc: Document;
@@ -37,18 +37,14 @@ registerSuite(function () {
 	function createDocument(): Document {
 		let doc: Document;
 
-		if (typeof document !== 'undefined') {
-			if (typeof document.implementation.createHTMLDocument === 'function') {
-				doc = document.implementation.createHTMLDocument('');
-			}
-			else {
-				const doctype = document.implementation.createDocumentType('html', '', '');
-				doc = document.implementation.createDocument('', 'html', doctype);
-				doc.body = <HTMLElement> doc.createElementNS('http://www.w3.org/1999/xhtml', 'body');
-			}
+		const defaultDoc = shim || document;
+		if (typeof defaultDoc.implementation.createHTMLDocument === 'function') {
+			doc = defaultDoc.implementation.createHTMLDocument('');
 		}
 		else {
-			doc = jsdom('<html><body></body></html>');
+			const doctype = defaultDoc.implementation.createDocumentType('html', '', '');
+			doc = defaultDoc.implementation.createDocument('', 'html', doctype);
+			doc.body = <HTMLElement> doc.createElementNS('http://www.w3.org/1999/xhtml', 'body');
 		}
 
 		return doc;
@@ -57,7 +53,7 @@ registerSuite(function () {
 	return {
 		name: 'src/parser',
 		setup: function () {
-			doc = typeof document === 'undefined' ? jsdom('<html><body></body></html>') : document;
+			doc = shim || document;
 			doc.body.innerHTML = '';
 		},
 		'registration': {

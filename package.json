@@ -36,6 +36,7 @@
 		"grunt-typings": "kitsonk/grunt-typings#452cf5f29a6070965f85d0dcae48abbd75939179",
 		"intern": "~3.2.1",
 		"istanbul": "0.4.3",
+		"jsdom": "^9.2.0",
 		"remap-istanbul": ">=0.6.4",
 		"tslint": "^3.10.2",
 		"typescript": "~1.8.10"
