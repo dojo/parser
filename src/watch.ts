@@ -11,7 +11,7 @@ interface ElementStructure {
  * The dirty polling interval in milliseconds
  * @type {number}
  */
-export let checkInterval: number = 30;
+export let checkInterval = 30;
 
 /**
  * The two types of changes emitted by watch
@@ -101,7 +101,7 @@ function searchSubTree(changes: WatcherRecord[], target: HTMLElement, oldState: 
 		const klen = kids.length;
 		const oldKids = state.kids;
 		const olen = oldKids ? oldKids.length : 0;
-		const map: { [id: string] : boolean } = {};
+		const map: { [id: string]: boolean } = {};
 		const conflicts: Conflict[] = [];
 		let oldStructure: ElementStructure;
 		let currentNode: HTMLElement;

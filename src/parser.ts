@@ -1,5 +1,5 @@
 import { Handle } from 'dojo-core/interfaces';
-import * as has from './has';
+import has from './has';
 import Promise from 'dojo-core/Promise';
 import WeakMap from 'dojo-core/WeakMap';
 import Registry from 'dojo-core/Registry';
@@ -169,11 +169,11 @@ export interface RegistrationHandle<T extends ParserObject, O> extends Handle {
 	factory: ParserFactory<T, O>;
 }
 
-interface ParserFactoryMap {
+export interface ParserFactoryMap {
 	[tagName: string]: ParserFactory<any, any>;
 }
 
-interface RegistrationMapHandle extends Handle {
+export interface RegistrationMapHandle extends Handle {
 	factories: ParserFactoryMap;
 }
 
@@ -211,9 +211,9 @@ export function register(tagName: string|RegistrationOptionsMap, options?: Regis
 			factory.prototype = <ParserObject> options.proto;
 		}
 		else if (options.Ctor && !options.factory) {
-			const Ctor = options.Ctor;
+			const ctor = options.Ctor;
 			factory = function ParserObject(node?: HTMLElement, options?: any): any {
-				return new Ctor(node, options);
+				return new ctor(node, options);
 			};
 		}
 		else if (options.factory) {

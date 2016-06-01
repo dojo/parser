@@ -1,15 +1,15 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
-import { jsdom } from 'src/has!host-node?../support/jsdom';
 import { Handle } from 'dojo-core/interfaces';
 import watch, { WatcherRecord, ChangeType } from '../../src/watch';
+import { shim } from '../support/shim-document';
 
 registerSuite(function () {
-	let doc: Document;
+	let doc = shim || document;
+
 	return {
 		name: 'src/watch',
 		setup: function () {
-			doc = typeof document === 'undefined' ? jsdom('<html><body></body></html>') : document;
 			doc.body.innerHTML = '';
 		},
 		afterEach: function () {
