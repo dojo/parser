@@ -6,6 +6,8 @@
 
 A package for declaratively instantiating widgets.
 
+**WARNING** This package is *deprecated* in favor of functionality found elsewhere in Dojo 2. This package is not being further developed at this time as its feature set is redundant with other capabilities.
+
 ## Features
 
 TODO: Add sections on features of this package
@@ -31,4 +33,4 @@ TODO: If third-party code was used to write this library, make a list of project
 
 * [Third-party lib one](https//github.com/foo/bar) ([New BSD](http://opensource.org/licenses/BSD-3-Clause))
 
-© 2004–2015 Dojo Foundation & contributors. [New BSD](http://opensource.org/licenses/BSD-3-Clause) license.
+© 2004–2017 [JS Foundation](http://js.foundation/) & contributors. [New BSD](http://opensource.org/licenses/BSD-3-Clause) license.
