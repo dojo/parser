@@ -6,7 +6,7 @@
 
 A package for declaratively instantiating widgets.
 
-**WARNING** This package is *deprecated* in favor of functionality found in [dojo/app](https://github.com/dojo/app). This package is not being further developed at this time as its feature set is redundant with the capabilities found in dojo/app.
+**WARNING** This package is *deprecated* in favor of functionality found elsewhere in Dojo 2. This package is not being further developed at this time as its feature set is redundant with other capabilities.
 
 ## Features
 
